@@ -1,0 +1,9 @@
+1.-¿Hizo falta una base de datos real para probar la regla de negocio? ¿Qué dice eso sobre para qué sirve el patrón Repository?
+No, no hizo falta. Toda la práctica el service, la regla de "no prestar un ejemplar ya prestado", y las pruebas corrió contra InMemoryPrestamoRepository, que por dentro solo es un Map. Nunca tuve que levantar Postgres, correr una migración ni abrir una conexión de red para validar que la lógica de negocio funcionara. Eso es justo para lo que sirve el patrón Repository: separa "las reglas del negocio" de "dónde se guardan los datos".
+
+2.-El Service recibe el repositorio como Repository<Prestamo>, no InMemoryPrestamoRepository. ¿Qué se rompía si usaban la clase concreta?
+Si el PrestamoService recibiera InMemoryPrestamoRepository directamente en vez de la interfaz PrestamoRepository, se rompe la inversión de dependencias: el Service quedaría "casado" con un detalle de infraestructura en vez de con un contrato, en otras palabras  usar la interfaz es lo que hace que el Service sea intercambiable y fácil de probar; usar la clase concreta anula esa ventaja aunque el código siga "funcionando" igual en el día a día.
+
+3.- Si cambiaran el Map en memoria por una base de datos real, ¿cuántos archivos tocarían? ¿Por qué tan pocos?
+Solo dos: una clase nueva en infra/ (ej. PostgresPrestamoRepository) que implemente la misma interfaz PrestamoRepository, y la línea del ensamblador donde se instancia el repositorio (new InMemoryPrestamoRepository() → new PostgresPrestamoRepository(...)).
+Nada más cambia porque el PrestamoService no depende de la implementación concreta, depende de la interfaz. Mientras la clase nueva cumpla el mismo contrato, es intercambiable sin que el negocio, los DTOs ni las pruebas se enteren.
