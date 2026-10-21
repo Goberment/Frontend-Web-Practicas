@@ -1,33 +1,21 @@
 ## Preguntas
 
-### 1. ¿Qué pasaría si el módulo no quedara registrado en la raíz?
+ 1. ¿Qué pasaría si el módulo no quedara registrado en la raíz?
+Si el módulo no está conectado con AppModule, NestJS no toma en cuenta sus funciones ni sus rutas. Por eso, aunque el proyecto pueda compilar, al intentar entrar a /clases aparecería un error 404, porque esa ruta no estaría disponible. Crear el módulo no es suficiente; también hay que integrarlo a la aplicación.
+2. ¿Por qué los métodos del repositorio devuelven promesas si los datos van a estar en memoria?
+Porque eso permite preparar el sistema para usar una base de datos más adelante. Aunque ahora guardar o buscar información en memoria es rápido, una base de datos necesita tiempo para responder. Usar promesas desde el principio facilita ese cambio sin tener que modificar la forma en que el Service utiliza el repositorio.
+3. ¿Qué error apareció al cambiar a la interfaz, y por qué la clase sí se había resuelto sola?
+Apareció un error indicando que NestJS no podía encontrar el repositorio que necesitaba InscripcionesService.
 
-Nest arma el grafo de dependencias empezando por `AppModule` y siguiendo sus `imports`. Un módulo que nadie importa nunca se escanea: su servicio no se instancia y, sobre todo, **su controlador no registra ninguna ruta**. El proyecto compila sin errores, pero al pedir `GET /clases` responde `404 Cannot GET /clases` (lo comprobé quitando `ClasesModule` de `imports`). Generar el módulo con el CLI no basta si se crea a mano: hay que importarlo en la raíz.
+Esto pasó porque NestJS puede reconocer una clase cuando la aplicación está funcionando, pero las interfaces desaparecen al compilar. Por eso, al usar la interfaz, hace falta un identificador o token que le indique qué repositorio debe utilizar.
+4. ¿Por qué el servicio necesita un token para el repositorio, pero el controlador no lo necesita para el servicio?
+Porque el Controller utiliza directamente la clase InscripcionesService, y NestJS puede identificarla. En cambio, el Service utiliza una interfaz para trabajar con el repositorio, y NestJS no puede reconocer esa interfaz durante la ejecución.
 
-### 2. ¿Por qué los métodos del repositorio devuelven promesas si los datos van a estar en memoria?
+El token INSCRIPCION_REPOSITORY funciona como una etiqueta que le indica cuál es el repositorio que debe entregar al Service.
+6. ¿Cuál es la diferencia entre un 400 y un 409?
+- 400 Bad Request: hay un problema con los datos enviados, como un campo obligatorio que falta o un texto donde debería ir un número. Para resolverlo, hay que corregir la petición.
+- 409 Conflict: los datos enviados están bien, pero existe una situación que impide completar la operación, como un horario lleno o una inscripción duplicada. Si esa situación cambia, la petición podría funcionar.
+7. ¿Por qué cambió el código de estado de esa última petición?
+Porque al cancelar la primera inscripción se liberó un lugar en el horario. Antes, la petición devolvía 409 porque el cupo estaba lleno. Después de la cancelación, se volvió a enviar la misma petición y respondió 201, porque ya había espacio para registrar al miembro.
 
-Porque la interfaz es un contrato pensado para el caso más lento. Hoy los datos viven en un arreglo, pero mañana la misma interfaz la implementará un repositorio con MySQL/Prisma, cuyo acceso es asíncrono. Si los métodos fueran síncronos, al cambiar de implementación habría que modificar la firma y todo el código que los llama (Service y Controller). Con `Promise` desde el inicio, el Service ya usa `await` y la sustitución no le afecta.
-
-### 3. ¿Qué error apareció al cambiar a la interfaz, y por qué la clase sí se había resuelto sola?
-
-Apareció:
-
-```
-Nest can't resolve dependencies of the InscripcionesService (?).
-Please make sure that the argument at index [0] is available in the current module.
-```
-
-Con la **clase concreta**, TypeScript emite en tiempo de compilación el tipo del parámetro como metadato (`emitDecoratorMetadata`), y como una clase existe en runtime, Nest la usa como su propia llave de búsqueda en el contenedor. Con la **interfaz**, TypeScript la borra al compilar: el metadato queda como `Object` y Nest no tiene ninguna llave con la cual buscar el proveedor (de ahí el `?` en el mensaje).
-
-### 4. ¿Por qué el servicio necesita un token para el repositorio, pero el controlador no lo necesita para el servicio?
-
-Porque el controlador depende de una **clase** (`InscripcionesService`), que existe en runtime y funciona como su propio token. El servicio depende de una **interfaz** (`InscripcionRepository`), que desaparece al compilar y no puede servir de llave. Por eso se crea una constante (`INSCRIPCION_REPOSITORY`), se pide con `@Inject(INSCRIPCION_REPOSITORY)` y en el módulo se registra `{ provide: INSCRIPCION_REPOSITORY, useClass: InscripcionMemoriaRepository }`. La interfaz le sirve a TypeScript al compilar; el token le sirve a Nest en runtime.
-
-### 6. ¿Cuál es la diferencia entre un 400 y un 409?
-
-- **400 Bad Request:** el servidor **no entiende la petición** porque está mal formada (faltan campos o tienen un tipo incorrecto). Se detecta mirando solo el cuerpo, sin consultar el sistema. Reenviarla igual nunca funcionará.
-- **409 Conflict:** la petición es **válida y se entiende**, pero choca con el **estado actual** del sistema (cupo lleno, inscripción duplicada). Puede funcionar más adelante si el estado cambia.
-
-### 7. ¿Por qué cambió el código de estado de esa última petición?
-
-La petición fue exactamente la misma (`{horarioId: 1, miembroId: 3}`), pero el **estado del sistema** cambió. Al cancelar la inscripción 1 su estado pasó a `cancelada`, y la regla del cupo solo cuenta las `confirmadas`, así que el horario pasó de 2/2 a 1/2 y quedó un lugar libre. Un 409 describe un conflicto con el estado actual, no un defecto de la petición; cuando ese estado cambia, el resultado cambia de **409 a 201**.
+Esto demuestra que el resultado también depende de la disponibilidad que tenga el sistema en ese momento.
