@@ -1,4 +1,4 @@
-# Práctica 12 (parte 1): React, JSX y el primer proyecto con Vite
+ Práctica 12 (parte 1): React, JSX y el primer proyecto con Vite
 
 1. Ver qué hace el compilador con el JSX
 Error al compilar sin configuración:
