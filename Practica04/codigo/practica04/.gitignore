@@ -1,0 +1,5 @@
+node_modules/
+dist/
+build-cliente/
+publico/cliente.js
+publico/cliente.js.map
