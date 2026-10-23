@@ -1,0 +1,177 @@
+### 0. Datos iniciales (via API): clases, horarios, miembros
+201 201 201 201 201 201 201 201 
+
+######## BATERIA DE INSCRIPCIONES (misma que Practica 6) ########
+
+### 1. horario1/miembro1 -> 201 + Location
+HTTP/1.1 201 Created
+X-Request-Id: 12cf956d-ac2a-42c6-b5dd-973a30985d34
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+Location: /inscripciones/1
+{"id":1,"horarioId":1,"miembroId":1,"estado":"confirmada","creadaEn":"2026-10-21T18:36:21.535Z"}
+
+### 2. horario1/miembro2 -> 201
+HTTP/1.1 201 Created
+X-Request-Id: fce34e4d-a546-4931-872c-1bfce3e94979
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+Location: /inscripciones/2
+{"id":2,"horarioId":1,"miembroId":2,"estado":"confirmada","creadaEn":"2026-10-21T18:36:21.558Z"}
+
+### 3. horario1/miembro3 -> 409 cupo lleno
+HTTP/1.1 409 Conflict
+X-Request-Id: 85161dcb-07cc-4b8e-9c3f-9d4dc65f7912
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"statusCode":409,"error":"Conflict","message":"El horario 1 ya tiene 2 inscripciones confirmadas","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.576Z"}
+
+### 4. miembro1 repetido -> 409 duplicada
+HTTP/1.1 409 Conflict
+X-Request-Id: fcae88c1-7e0d-4019-932a-0d03b64ea7b3
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"statusCode":409,"error":"Conflict","message":"El miembro 1 ya esta inscrito en el horario 1","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.589Z"}
+
+### 5. horario 99 -> 404
+HTTP/1.1 404 Not Found
+X-Request-Id: 1c71e391-7bfa-4b98-bdbb-a5bb6382e037
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"statusCode":404,"error":"Not Found","message":"No existe el horario 99","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.599Z"}
+
+### 6. miembro 99 -> 404
+HTTP/1.1 404 Not Found
+X-Request-Id: 7da0df80-d936-47f2-899b-b265a37c5e96
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"statusCode":404,"error":"Not Found","message":"No existe el miembro 99","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.610Z"}
+
+### 7. tipo equivocado -> 400
+HTTP/1.1 400 Bad Request
+X-Request-Id: f198e9f8-3708-410d-9702-25e5a7400083
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["horarioId must not be less than 1","horarioId must be an integer number","miembroId must not be less than 1","miembroId must be an integer number"],"error":"Bad Request","statusCode":400}
+
+### 8. DELETE /inscripciones/1 -> 200 cancelada
+HTTP/1.1 200 OK
+X-Request-Id: 41ec34eb-616c-465f-bfaf-fc59347b95b8
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"id":1,"horarioId":1,"miembroId":1,"estado":"cancelada","creadaEn":"2026-10-21T18:36:21.535Z"}
+
+### 10. repetir la #3 -> 201
+HTTP/1.1 201 Created
+X-Request-Id: 3d992d8c-1b20-42b8-9029-1492861e2501
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+Location: /inscripciones/3
+{"id":3,"horarioId":1,"miembroId":3,"estado":"confirmada","creadaEn":"2026-10-21T18:36:21.654Z"}
+
+######## VALIDACION (paso 4) ########
+
+### V1. tipo equivocado (horarioId:'hola')
+HTTP/1.1 400 Bad Request
+X-Request-Id: f689e56a-058e-4dc4-8216-f9f605f00605
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["horarioId must not be less than 1","horarioId must be an integer number"],"error":"Bad Request","statusCode":400}
+
+### V2. campo que no existe en el DTO
+HTTP/1.1 400 Bad Request
+X-Request-Id: 251e4511-d4c1-463e-b9f9-0b12e548d562
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["property admin should not exist"],"error":"Bad Request","statusCode":400}
+
+### V3. cuerpo vacio
+HTTP/1.1 400 Bad Request
+X-Request-Id: 6bd19899-2aac-431c-94fc-81c389776aa7
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["horarioId must not be less than 1","horarioId must be an integer number","miembroId must not be less than 1","miembroId must be an integer number"],"error":"Bad Request","statusCode":400}
+
+### V4. miembro con correo invalido y membresia invalida
+HTTP/1.1 400 Bad Request
+X-Request-Id: 3a4373da-7176-435c-8ca3-0e0e810f4329
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["correo must be an email","membresia must be one of the following values: basica, plus, premium"],"error":"Bad Request","statusCode":400}
+
+### V5. horario con hora mal formada y cupo decimal
+HTTP/1.1 400 Bad Request
+X-Request-Id: 408845d1-588a-4327-acac-55245fa4d21b
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["horaInicio debe tener formato HH:MM (24 horas)","cupoMaximo must be an integer number"],"error":"Bad Request","statusCode":400}
+
+### V6. PATCH miembro activo como texto
+HTTP/1.1 400 Bad Request
+X-Request-Id: 455bfe41-0f90-4a5b-a7c5-250bfccdd5c8
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["activo must be a boolean value"],"error":"Bad Request","statusCode":400}
+
+### V7. POST sin cuerpo
+HTTP/1.1 400 Bad Request
+X-Request-Id: dae5b726-9b33-4ce2-ad32-2babc48b92cd
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+{"message":["horarioId must not be less than 1","horarioId must be an integer number","miembroId must not be less than 1","miembroId must be an integer number"],"error":"Bad Request","statusCode":400}
+
+######## FILTRO (paso 5): cuerpo completo ########
+--- 409 duplicada
+{"statusCode":409,"error":"Conflict","message":"El miembro 2 ya esta inscrito en el horario 1","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.729Z"}
+--- 404 horario
+{"statusCode":404,"error":"Not Found","message":"No existe el horario 99","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.737Z"}
+--- 404 miembro
+{"statusCode":404,"error":"Not Found","message":"No existe el miembro 99","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.746Z"}
+--- 409 cupo lleno (horario 1 con 2 confirmadas)
+{"statusCode":409,"error":"Conflict","message":"El horario 1 ya tiene 2 inscripciones confirmadas","path":"/inscripciones","timestamp":"2026-10-21T18:36:21.757Z"}
+
+######## CORS (paso 6) ########
+
+### GET /clases con Origin: http://localhost:5173
+HTTP/1.1 200 OK
+X-Request-Id: 9265eac9-16d5-4ade-9a76-1f72cdf0d1ce
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+
+### GET /clases con Origin: http://localhost:4200
+HTTP/1.1 200 OK
+X-Request-Id: 1a390420-899c-4364-9075-055510de8dad
+Access-Control-Allow-Origin: http://localhost:4200
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+
+### GET /clases con Origin: http://sitio-malicioso.com
+HTTP/1.1 200 OK
+X-Request-Id: a577d162-2d4b-4a79-b41c-409a93fe45ce
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+
+### POST /inscripciones (Location expuesta) con Origin 5173
+HTTP/1.1 201 Created
+X-Request-Id: 189ddfda-1136-4267-9085-88be42b44f82
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Access-Control-Expose-Headers: Location,X-Request-Id
+Location: /inscripciones/4
+
+### Preflight OPTIONS desde 5173
+HTTP/1.1 204 No Content
+X-Request-Id: e701a71e-20b9-488e-b200-d5f3a1909de6
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin, Access-Control-Request-Headers
+Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE
+Access-Control-Allow-Headers: content-type
+Access-Control-Expose-Headers: Location,X-Request-Id
+
+### Preflight OPTIONS desde origen malicioso
+HTTP/1.1 204 No Content
+X-Request-Id: e0823128-9f1a-41e1-901a-fd19ffb9fd88
+Vary: Origin, Access-Control-Request-Headers
+Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE
+Access-Control-Expose-Headers: Location,X-Request-Id

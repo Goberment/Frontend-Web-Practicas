@@ -1,0 +1,59 @@
+﻿generator client {
+  provider     = "prisma-client"
+  output       = "../src/generado/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Clase {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @db.VarChar(100)
+  descripcion String?   @db.Text
+  horarios    Horario[]
+
+  @@map("clases")
+}
+
+model Horario {
+  id            Int           @id @default(autoincrement())
+  claseId       Int
+  dia           String        @db.VarChar(20)
+  horaInicio    DateTime      @db.Time(0)
+  cupoMaximo    Int
+  entrenador    String        @db.VarChar(100)
+  clase         Clase         @relation(fields: [claseId], references: [id], map: "fk_horarios_clases")
+  inscripciones Inscripcion[]
+
+  @@index([claseId], map: "fk_horarios_clases")
+  @@map("horarios")
+}
+
+model Miembro {
+  id            Int           @id @default(autoincrement())
+  nombre        String        @db.VarChar(150)
+  correo        String        @unique(map: "uq_miembros_correo") @db.VarChar(254)
+  membresia     String        @db.VarChar(50)
+  activo        Boolean       @default(true)
+  inscripciones Inscripcion[]
+
+  @@map("miembros")
+}
+
+model Inscripcion {
+  id        Int      @id @default(autoincrement())
+  horarioId Int
+  miembroId Int
+  estado    String   @default("confirmada") @db.VarChar(30)
+  creadaEn  DateTime @default(now())
+  horario   Horario  @relation(fields: [horarioId], references: [id], map: "fk_inscripciones_horarios")
+  miembro   Miembro  @relation(fields: [miembroId], references: [id], map: "fk_inscripciones_miembros")
+
+  @@index([horarioId, estado], map: "idx_inscripciones_horario_estado")
+  @@index([miembroId], map: "idx_inscripciones_miembro")
+  @@map("inscripciones")
+}
+
+

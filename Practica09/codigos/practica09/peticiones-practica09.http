@@ -1,0 +1,190 @@
+### Practica 9 - Blindar la API
+###
+### COMO SE USA:
+###   1. Extension "REST Client" (humao.rest-client) en VS Code.
+###   2. MySQL corriendo y la Practica 8 migrada.
+###   3. npm run start:dev
+###   4. Clic en "Send Request" sobre cada peticion, EN ORDEN.
+###
+### OJO: esta vez los datos viven en MySQL y NO se borran al reiniciar
+### el servidor. El bloque 0 se corre UNA sola vez. Para repetir todo
+### desde cero:  npx prisma migrate reset   y volver a correr el bloque 0.
+
+@host = http://localhost:3000
+
+
+### ================================================================
+### 0. DATOS INICIALES (una sola vez, en una base vacia)
+### ================================================================
+
+### 0.1 Clase 1
+POST {{host}}/clases
+Content-Type: application/json
+
+{ "nombre": "Yoga" }
+
+### 0.2 Clase 2
+POST {{host}}/clases
+Content-Type: application/json
+
+{ "nombre": "Spinning" }
+
+### 0.3 Horario 1 (cupo para dos)
+POST {{host}}/horarios
+Content-Type: application/json
+
+{ "claseId": 1, "dia": "lunes", "horaInicio": "07:00", "cupoMaximo": 2, "entrenador": "Ana Robles" }
+
+### 0.4 Horario 2
+POST {{host}}/horarios
+Content-Type: application/json
+
+{ "claseId": 1, "dia": "miercoles", "horaInicio": "07:00", "cupoMaximo": 3, "entrenador": "Ana Robles" }
+
+### 0.5 Horario 3
+POST {{host}}/horarios
+Content-Type: application/json
+
+{ "claseId": 2, "dia": "martes", "horaInicio": "19:00", "cupoMaximo": 4, "entrenador": "Luis Fierro" }
+
+### 0.6 Miembro 1
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Karla Duarte", "correo": "karla@itson.mx", "membresia": "premium" }
+
+### 0.7 Miembro 2
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Omar Valdez", "correo": "omar@itson.mx", "membresia": "plus" }
+
+### 0.8 Miembro 3
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Sofia Ibarra", "correo": "sofia@itson.mx", "membresia": "basica" }
+
+
+### ================================================================
+### BATERIA DE INSCRIPCIONES (los mismos codigos de la Practica 6)
+### ================================================================
+
+### 1. Primera inscripcion  ->  201 + header Location
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 1 }
+
+### 2. Segunda inscripcion, se llena el cupo  ->  201
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 2 }
+
+### 3. Tercera inscripcion  ->  409 cupo lleno (traducido por el FILTRO)
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 3 }
+
+### 4. El miembro 1 otra vez  ->  409 duplicada (traducido por el FILTRO)
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 1 }
+
+### 5. Un horario que no existe  ->  404
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 99, "miembroId": 1 }
+
+### 6. Un miembro que no existe  ->  404
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 3, "miembroId": 99 }
+
+### 7. Listar todas  ->  200
+GET {{host}}/inscripciones
+
+### 8. Cancelar la primera  ->  200 con estado "cancelada"
+DELETE {{host}}/inscripciones/1
+
+### 9. LA MISMA peticion de la #3  ->  201 (la cancelacion libero un lugar)
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 3 }
+
+
+### ================================================================
+### PASO 4 - VALIDACION (ValidationPipe)  ->  400
+### ================================================================
+
+### V1. Tipo equivocado  ->  400  (CAPTURA PARA LA ENTREGA)
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": "hola", "miembroId": 1 }
+
+### V2. Un campo que no existe en el DTO  ->  400 "property admin should not exist"
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 1, "admin": true }
+
+### V3. Correo invalido y membresia que no existe  ->  400
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Prueba", "correo": "no-es-un-correo", "membresia": "vip" }
+
+### V4. Hora mal formada y cupo decimal  ->  400
+POST {{host}}/horarios
+Content-Type: application/json
+
+{ "claseId": 1, "dia": "lunes", "horaInicio": "25:99", "cupoMaximo": 2.5, "entrenador": "Ana" }
+
+
+### ================================================================
+### PASO 5 - FILTRO DE EXCEPCIONES
+### Mira que el cuerpo trae statusCode, error, message, path y timestamp
+### ================================================================
+
+### F1. Conflicto traducido por el filtro  ->  409  (CAPTURA PARA LA ENTREGA)
+###     Corre antes la #1 y la #2: con el horario 1 lleno responde 409.
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 1, "miembroId": 2 }
+
+### F2. Algo que no existe, traducido por el filtro  ->  404
+POST {{host}}/inscripciones
+Content-Type: application/json
+
+{ "horarioId": 99, "miembroId": 1 }
+
+
+### ================================================================
+### PASO 6 - CORS: la MISMA peticion con tres origenes distintos
+### Compara las cabeceras de respuesta de las tres
+### ================================================================
+
+### C1. Origen permitido 1  ->  trae Access-Control-Allow-Origin  (CAPTURA)
+GET {{host}}/clases
+Origin: http://localhost:5173
+
+### C2. Origen permitido 2  ->  trae Access-Control-Allow-Origin  (CAPTURA)
+GET {{host}}/clases
+Origin: http://localhost:4200
+
+### C3. Origen NO permitido  ->  responde 200 pero SIN Access-Control-Allow-Origin
+GET {{host}}/clases
+Origin: http://sitio-malicioso.com
+
+### C4. Cabeceras expuestas: Location y X-Request-Id
+###     (Access-Control-Expose-Headers las lista)
+GET {{host}}/clases/1
+Origin: http://localhost:5173
