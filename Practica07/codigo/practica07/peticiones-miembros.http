@@ -1,0 +1,40 @@
+
+@host = http://localhost:3000
+
+### 1. Listar todos  ->  200, los 3 miembros iniciales
+GET {{host}}/miembros
+
+
+### 2. Buscar por id  ->  200
+GET {{host}}/miembros/1
+
+
+### 3. Crear  ->  201 + header Location: /miembros/4
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Diego Salazar", "correo": "diego@itson.mx", "membresia": "plus" }
+
+
+### 4. Actualizar (parcial)  ->  200, solo cambia lo que se manda
+PATCH {{host}}/miembros/2
+Content-Type: application/json
+
+{ "membresia": "premium", "activo": false }
+
+
+### 5. Eliminar  ->  204 sin cuerpo
+DELETE {{host}}/miembros/4
+
+
+### Extras (errores)
+
+### 6. Buscar uno que no existe  ->  404
+GET {{host}}/miembros/99
+
+
+### 7. Crear con cuerpo incompleto  ->  400
+POST {{host}}/miembros
+Content-Type: application/json
+
+{ "nombre": "Sin correo" }
