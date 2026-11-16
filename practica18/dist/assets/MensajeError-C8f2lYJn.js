@@ -1,0 +1,1 @@
+import{l as e}from"./index-HJYVHDIi.js";var t=e();function n({mensaje:e,onReintentar:n}){return(0,t.jsxs)(`div`,{className:`error`,children:[(0,t.jsx)(`p`,{children:e}),(0,t.jsx)(`button`,{className:`boton`,onClick:n,children:`Reintentar`})]})}export{n as t};
